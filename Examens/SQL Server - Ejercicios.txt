@@ -1,0 +1,946 @@
+﻿SQL Server
+MODELO DE EXAMEN
+
+-- 1 ¿Qué Obras Sociales cubren a pacientes que se hayan atendido en algún turno con algún médico de especialidad 'Odontología'?
+Select OS.NOMBRE
+from OBRAS_SOCIALES as OS
+INNER join PACIENTES as P on OS.IDOBRASOCIAL = P.IDOBRASOCIAL
+WHERE P.IDPACIENTE in (
+    select T.IDPACIENTE from TURNOS as T
+    inner join MEDICOS AS M on T.IDMEDICO = M.IDMEDICO
+    inner join ESPECIALIDADES as E on M.IDESPECIALIDAD = E.IDESPECIALIDAD
+    where E.NOMBRE = 'Odontología'
+)
+
+
+-- 2 ¿Cuántos pacientes distintos se atendieron en turnos que duraron más que la duración promedio?
+select COUNT(DISTINCT T.IDPACIENTE) as TurnosDistintos
+from TURNOS as T
+where T.DURACION > (Select AVG(T2.DURACION) from Turnos T2)
+
+
+-- 3 ¿Cuál es el costo de la consulta promedio de los/as especialistas en "Oftalmología"?
+select avg(M.COSTO_CONSULTA) as CostoPromedioConsulta
+from MEDICOS as M
+inner join ESPECIALIDADES as E on E.IDESPECIALIDAD = M.IDESPECIALIDAD
+Where E.NOMBRE = 'Oftalmología'
+
+
+-- 4 ¿Cuál es la cantidad de pacientes que no se atendieron en el año 2019?
+Select COUNT(DISTINCT P.IDPACIENTE) as PacientesNO2019
+from PACIENTES as P
+where P.IDPACIENTE not in (
+    Select T.IDPACIENTE
+    from TURNOS as T
+    where YEAR(T.FECHAHORA) = 2019
+)
+
+
+-- 5 ¿Cuál es el apellido del médico (sexo masculino) con más antigüedad de la clínica?
+Select TOP 3 M.Apellido, M.FECHAINGRESO 
+from MEDICOS as M
+where M.SEXO = 'M' 
+order by FECHAINGRESO asc
+
+
+2.1 Consultas de Selección 
+-- 1. Todos los clientes indicando Apellido, Nombre y Correo Electrónico.
+SELECT 
+    Apellido, 
+    Nombre, 
+    CorreoElectronico 
+FROM Clientes
+
+-- 2. Todos los clientes indicando Apellido y Nombre con el formato: [Apellido], [Nombre] (ordenados por Apellido en forma descendente). Por ejemplo: Martinez, Sofía.
+SELECT 
+    Concat(Apellido, ', ', Nombre) AS NombreCompleto 
+FROM Clientes 
+ORDER BY Apellido DESC 
+
+-- 3. Los clientes cuya ciudad contenga la palabra ‘Jujuy’ (indicando Nombre, Apellido y Ciudad)
+SELECT 
+    Nombre,
+    Apellido,
+    Ciudad 
+FROM Clientes 
+WHERE Ciudad LIKE '%Jujuy%'
+
+-- 4 Los clientes que no tengan registrado su correo electrónico (indicando IdCliente, Apellido y Nombre). Ordenar por Apellido en forma descendente y por Nombre en forma ascendente.
+SELECT 
+    IdCliente, 
+    Apellido, 
+    Nombre
+FROM Clientes
+WHERE CorreoElectronico IS NULL
+ORDER BY Apellido DESC, Nombre ASC
+
+-- 5 El último cliente del listado en orden alfabético (ordenado por Apellido y luego por Nombre). Indicar IdCliente, Apellido y Nombre
+SELECT TOP 1 
+    IdCliente, 
+    Apellido, 
+    Nombre
+FROM Clientes
+ORDER BY Apellido DESC, Nombre DESC
+
+-- 6 Los clientes cuyo año de alta haya sido 2019 (Indicar Nombre, Apellido y Fecha de alta).
+SELECT 
+    Nombre, 
+    Apellido, 
+    FechaAlta 
+FROM Clientes 
+WHERE YEAR(FechaAlta) = 2019
+
+-- 7 Todos los clientes indicando Apellido, Nombre y Datos de Contacto. La última columna debe contener el mail si el cliente tiene mail, de lo contrario el Celular, sino el Teléfono y en caso de no tener ninguno debe indicar 'Incontactable'.
+SELECT 
+    Apellido,
+    Nombre,
+    CASE 
+        WHEN CorreoElectronico IS NOT NULL THEN CorreoElectronico
+        WHEN Celular IS NOT NULL THEN Celular
+        WHEN Telefono IS NOT NULL THEN Telefono
+    ELSE 'Inconcatenable'
+END AS DatosContacto
+From Clientes 
+
+-- 8 Todos los clientes, indicando el semestre en el cual se produjo su alta. Indicar Nombre, Apellido, Fecha de Alta y la frase “Primer Semestre” o “Segundo Semestre” según corresponda.
+SELECT 
+    Nombre,
+    Apellido,
+    FechaAlta,
+    CASE 
+        WHEN MONTH(FechaAlta) BETWEEN 1 AND 6 THEN 'Primer Semestre'
+    ELSE 'Segundo Semestre'
+END AS Semestre
+From Clientes 
+
+-- 9 Los clientes que tengan registrado teléfono pero no celular. Indicar IdCliente, Apellido y Nombre. Ordenar en forma descendente por fecha de alta
+SELECT 
+    IdCliente,
+    Apellido,
+    Nombre
+FROM Clientes
+WHERE Telefono IS NOT NULL AND Celular IS NULL
+ORDER BY FechaAlta DESC;
+
+-- 10 Todas las ciudades donde residen los clientes. NOTA: no se pueden repetir
+SELECT DISTINCT 
+    Ciudad 
+From Clientes
+
+-- 11 Todos los pedidos cuyo Estado no sea Rechazado. Indicar IdPedido, IdCliente, Fecha y Monto Total. Ordenar los resultados por fecha de pedido (del más reciente al más antigüo).
+SELECT 
+    IdPedido,
+    IdCliente,
+    FechaPedido,
+    MontoTotal
+From Pedidos
+WHERE Estado != 'Rechazado'
+ORDER BY FechaPedido DESC
+
+-- 12 Todos los pedidos cuyo Estado sea “Pagado” o “En preparación” y su monto esté entre $500 y $1250 (ambos inclusive). Indicar el valor de todas las columnas.
+SELECT 
+    IdPedido,
+    IdCliente,
+    FechaPedido,
+    MontoTotal,
+    Estado
+FROM Pedidos
+WHERE (Estado = 'Pagado' OR Estado = 'En Preparacion')
+    AND MontoTotal BETWEEN 500 AND 1250
+
+-- 13 Listar los meses del año en los que se registraron pedidos en los años 2018 y 2019. NOTA: no indicar más de una vez el mismo mes.
+Select DISTINCT 
+    MONTH(FechaPedido) AS Mes,
+    YEAR(FechaPedido) AS Año
+FROM Pedidos 
+WHERE YEAR(FechaPedido) = 2018 OR YEAR(FechaPedido) = 2019
+ORDER BY Año ASC, Mes ASC
+
+-- 14 Indicar los distintos ID de clientes que realizaron pedidos por un monto total mayor a $1000 y cuyo estado no sea Rechazado.
+SELECT DISTINCT 
+    IdCliente 
+From Pedidos
+WHERE MontoTotal > 1000 
+    AND Estado != 'Rechazado'
+
+-- 15 Listar todos los datos de los pedidos realizados por los clientes con ID 1, 8, 16, 24, 32 y 48. Los registros deben estar ordenados por IdCliente y Estado.
+SELECT 
+    IdPedido, 
+    IdCliente, 
+    FechaPedido, 
+    Estado, 
+    MontoTotal 
+FROM Pedidos
+WHERE IdCliente IN (1, 8, 16, 24, 32, 48)
+ORDER BY IdCliente, Estado
+
+-- 16 Listar todos los datos de los tres pedidos de más bajo monto que se encuentren en estado Pagado.
+SELECT TOP 3 
+    IdPedido, 
+    IdCliente, 
+    FechaPedido, 
+    Estado, 
+    MontoTotal 
+FROM Pedidos
+WHERE Estado = 'Pagado'
+ORDER BY MontoTotal ASC
+
+-- 17 Listar los pedidos que tengan estado Rechazado y un monto total menor a $500 o bien tengan estado En preparación y un monto total que supere los $1000. Indicar todas las columnas excepto Id de Cliente y Fecha del pedido. Ordenar por Id de pedido.
+Select 
+    IdPedido,
+    Estado, 
+    MontoTotal 
+FROM Pedidos
+WHERE (Estado = 'Rechazado' AND MontoTotal < 500) 
+    OR (Estado = 'En Preparacion' AND MontoTotal > 1000)
+ORDER BY IdPedido
+
+-- 18 Listar los pedidos realizados en el año 2023 indicando todas las columnas y además una llamada “DiaSemana” que devuelva a qué día de la semana (1-7) corresponde la fecha del pedido. Ordenar los registros por la columna que contiene el día de la semana. DESAFÍO: crear otra columna llamada DiaSemanaEnLetras que contenga el día de la semana pero en letras (suponiendo que la semana comienza en 1-DOMINGO). Por ejemplo si la fecha del pedido es 20/07/2023, la columna DiaSemana debe contener 5 y la columna DiaSemanaEnLetras debe contener JUEVES.
+Select 
+    IdPedido,
+    IdCliente,
+    FechaPedido,
+    Estado, 
+    MontoTotal, 
+    DATEPART(WEEKDAY, FechaPedido) AS DiaSemana,
+    CASE DATEPART(WEEKDAY, FechaPedido)
+        WHEN 1 THEN 'DOMINGO'
+        WHEN 2 THEN 'LUNES'
+        WHEN 3 THEN 'MARTES'
+        WHEN 4 THEN 'MIERCOLES'
+        WHEN 5 THEN 'JUEVES'
+        WHEN 6 THEN 'VIERNES'
+        WHEN 7 THEN 'SABADO'
+    END AS DiaSemanaEnLetras
+FROM Pedidos
+WHERE YEAR(FechaPedido) = 2023
+ORDER BY DiaSemana
+
+-- 19 Listar los pedidos en estado Pendiente y cuyo mes de realización coincida con el mes actual (sin importar el año). NOTA: obtener el mes actual mediante una función, no forzar el valor.
+Select 
+    IdPedido,
+    IdCliente,
+    FechaPedido,
+    Estado, 
+    MontoTotal 
+FROM Pedidos
+WHERE Estado = 'Pendiente' AND MONTH(FechaPedido) = MONTH(GETDATE())
+
+-- 20 La empresa que distribuye los pedidos desea otorgar una bonificación sobre el monto total en aquellos pedidos que estén en estado Pendiente o En preparación. Si el pedido fue realizado entre los años 2017 y 2019 la bonificación será del 50%. Si el pedido se realizó en los años 2020 o 2021, la bonificación será del 30%. Para los pedidos efectuados entre los años 2022 y 2023, la bonificación es del 10%. Calcular, dependiendo del estado de cada pedido y el año en que se realizó, el valor del monto total una vez efectuada la bonificación, informándolo en una columna llamada MontoTotalBonificado. Listar además todos las columnas de Pedidos, ordenadas por la fecha del pedido. No tener en cuenta los pedidos que no estén en los estados mencionados
+Select 
+    IdPedido,
+    IdCliente,
+    FechaPedido,
+    Estado, 
+    MontoTotal,
+    CASE 
+        WHEN YEAR(FechaPedido) BETWEEN 2017 AND 2019 THEN MontoTotal * 0.5
+        WHEN YEAR(FechaPedido) BETWEEN 2020 AND 2021 THEN MontoTotal * 0.7
+        WHEN YEAR(FechaPedido) BETWEEN 2022 AND 2023 THEN MontoTotal * 0.9
+        ELSE MontoTotal
+    END AS MontoTotalBonificado
+FROM Pedidos
+WHERE Estado = 'Pendiente' OR Estado = 'En Preparacion'
+ORDER BY FechaPedido ASC
+
+-- 21 Listar los pedidos que no hayan sido realizados por los clientes con ID 2, 9, 17, 25, 33 y 47. Indicar Id de cliente, Id de pedido, fecha de pedido, estado y monto total. Ordenar por Id de cliente.
+Select 
+    IdCliente,
+    IdPedido,
+    FechaPedido,
+    Estado, 
+    MontoTotal
+FROM Pedidos
+WHERE IdCliente NOT IN (2, 9, 17, 25, 33, 47)
+ORDER BY IdCliente ASC
+
+-- 22 Listar todos los datos de los clientes cuyos apellidos comienzan con O, no poseen correo electrónico y su año de alta es 2017. Hacer la misma consulta para los clientes con apellido que comienza con P y año de alta 2019 que no poseen teléfono ni celular. Ordenar los registros por fecha de alta.
+Select 
+    IdCliente,
+    Nombre,
+    Apellido,
+    CorreoElectronico,
+    Telefono,
+    Celular,
+    Ciudad,
+    FechaAlta
+FROM Clientes
+WHERE (YEAR(FechaAlta) = 2017 AND Apellido LIKE 'O%' AND CorreoElectronico IS NULL)
+    OR(YEAR(FechaAlta) = 2019 AND Apellido LIKE 'P%' AND Telefono IS NULL AND Celular IS NULL)
+ORDER BY FechaAlta ASC
+
+-- 23 Listar todos los datos del pedido que haya registrado el mayor monto total. En caso de empate se deben listar todos los pedidos con igual monto.
+Select 
+    IdPedido,
+    IdCliente,
+    FechaPedido,
+    Estado,
+    MontoTotal
+FROM Pedidos
+WHERE MontoTotal = (SELECT MAX(MontoTotal) FROM Pedidos)
+
+2.2 JOINS 
+
+
+USE BDArchivos
+
+-- 1 Por cada usuario listar el nombre, apellido y el nombre del tipo de usuario.
+SELECT 
+    U.Nombre,
+    U.Apellido,
+    T.TipoUsuario
+FROM Usuarios AS U 
+INNER JOIN TiposUsuario AS T 
+ON U.IDTipoUsuario = T.IdTipoUsuario 
+
+-- 2 Listar el ID, nombre, apellido y tipo de usuario de aquellos usuarios que sean del tipo 'Suscripción Free' o 'Suscripción Básica'
+SELECT 
+    U.IDUsuario,
+    U.Nombre,
+    U.Apellido,
+    T.TipoUsuario
+FROM Usuarios AS U 
+INNER JOIN TiposUsuario AS T
+ON U.IDTipoUsuario = T.IDTipoUsuario
+WHERE T.TipoUsuario IN ('Suscripción Free', 'Suscripción Básica')
+
+-- 3 Listar los nombres de archivos, extensión, tamaño expresado en Megabytes y el nombre del tipo de archivo. NOTA: En la tabla Archivos el tamaño está expresado en Bytes.
+SELECT 
+    A.Nombre,
+    A.Extension,
+    CAST(A.Tamaño / 1048576.0 AS DECIMAL(10, 2)),
+    TA.TipoArchivo
+FROM Archivos AS A
+INNER JOIN TiposArchivos AS TA
+ON A.IDTipoArchivo = TA.IDTipoArchivo
+
+-- 4 Listar los nombres de archivos junto a la extensión con el siguiente formato 'NombreArchivo.extension'. Por ejemplo, 'Actividad.pdf'. Sólo listar aquellos cuyo tipo de archivo contenga los términos 'ZIP', 'Word', 'Excel', 'Javascript' o 'GIF'
+
+SELECT 
+    CONCAT(A.Nombre, '.', A.Extension) AS NombreCompleto
+FROM Archivos AS A
+INNER JOIN TiposArchivos AS TA
+ON A.IDTipoArchivo = TA.IDTipoArchivo
+WHERE TA.TipoArchivo LIKE '%ZIP%' 
+   OR TA.TipoArchivo LIKE '%Word%' 
+   OR TA.TipoArchivo LIKE '%Excel%' 
+   OR TA.TipoArchivo LIKE '%Javascript%' 
+   OR TA.TipoArchivo LIKE '%GIF%';
+
+-- 5 Listar los nombres de archivos, su extensión, el tamaño en megabytes y la fecha de creación de aquellos archivos que le pertenezcan al usuario dueño con nombre 'Michael' y apellido 'Williams'.
+SELECT 
+    A.Nombre,
+    A.Extension,
+    CAST(A.Tamaño / 1048576.0 AS DECIMAL(10, 2)),
+    A.FechaCreacion
+FROM Archivos AS A
+INNER JOIN Usuarios AS U
+ON A.IDUsuarioDueño = U.IDUsuario
+WHERE U.Nombre = 'Michael' AND U.Apellido = 'Williams'
+
+-- 6 Listar los datos completos del archivo más pesado del usuario dueño con nombre 'Michael' y apellido 'Williams'. Si hay varios archivos que cumplen esa condición, listarlos a todos.
+SELECT TOP 1 WITH TIES
+    A.IDArchivo,
+    A.IDUsuarioDueño,
+    A.Nombre,
+    A.Extension,
+    A.Descripcion,
+    A.IDTipoArchivo,
+    A.Tamaño,
+    A.FechaCreacion,
+    A.FechaUltimaModificacion,
+    A.Eliminado
+FROM Archivos AS A
+INNER JOIN Usuarios AS U
+ON A.IDUsuarioDueño = U.IDUsuario
+WHERE (U.Nombre = 'Michael' AND U.Apellido = 'Williams')
+ORDER BY Tamaño DESC 
+  
+--alternativa:
+  --  AND A.Tamaño = (
+   --     SELECT MAX(Tamaño)
+   --     FROM Archivos
+   --     WHERE IDUsuarioDueño = U.IDUsuario
+    --)
+
+--7 Listar nombres de archivos, extensión, tamaño en bytes, fecha de creación y de modificación, apellido y nombre del usuario dueño de aquellos archivos cuya descripción contengan el término 'empresa' o 'presupuesto'
+SELECT 
+    A.Nombre,
+    A.Extension,
+    A.Tamaño,
+    A.FechaCreacion,
+    A.FechaUltimaModificacion,
+    U.Apellido,
+    U.Nombre
+FROM Archivos AS A
+INNER JOIN Usuarios AS U
+ON A.IDUsuarioDueño = U.IDUsuario
+WHERE A.Descripcion LIKE '%empresa%' OR A.Descripcion LIKE '%presupuesto%'
+
+-- 8 Listar las extensiones sin repetir de los 1archivos cuyos 2usuarios dueños tengan 3tipo de usuario 'Suscripción Plus', 'Suscripción Premium' o 'Suscripción Empresarial'
+SELECT DISTINCT
+    A.Extension
+FROM Archivos AS A
+INNER JOIN Usuarios AS U
+ON A.IDUsuarioDueño = U.IDUsuario
+INNER JOIN TiposUsuario AS TU
+ON U.IDTipoUsuario = TU.IDTipoUsuario
+WHERE TU.TipoUsuario IN ('Suscripción Plus', 'Suscripción Premium', 'Suscripción Empresarial')
+
+-- 9 Listar los apellidos y nombres de los usuarios dueños y el tamaño del archivo de los tres archivos con extensión 'zip' más pesados. Puede ocurrir que el mismo usuario aparezca varias veces en el listado.
+SELECT TOP 3
+    U.Apellido,
+    U.Nombre,
+    A.Tamaño
+FROM Usuarios AS U
+INNER JOIN Archivos AS A
+ON U.IDUsuario = A.IDUsuarioDueño
+WHERE A.Extension = 'zip'  
+ORDER BY A.Tamaño DESC
+
+-- 10 Por cada archivo listar el nombre del archivo, la extensión, el tamaño en bytes, el nombre del tipo de archivo y el tamaño calculado en su mayor expresión y la unidad calculada. Siendo Gigabytes si al menos pesa un gigabyte, Megabytes si al menos pesa un megabyte, Kilobyte si al menos pesa un kilobyte o en su defecto expresado en bytes. Por ejemplo, si el archivo imagen.jpg pesa 40960 bytes entonces debe figurar 40 en la columna Tamaño Calculado y 'Kilobytes' en la columna unidad.
+SELECT 
+    A.Nombre,
+    A.Extension,
+    A.Tamaño,
+    TA.TipoArchivo,
+    CASE 
+        WHEN A.Tamaño >= 1073741824 THEN CAST(A.Tamaño / 1073741824.0 AS decimal(10))  -- Gigabytes
+        WHEN A.Tamaño >= 1048576 THEN CAST(A.Tamaño / 1048576.0 AS decimal(10)) -- Megabytes
+        WHEN A.Tamaño >= 1024 THEN CAST(A.Tamaño / 1024.0 AS decimal(10)) -- Kilobytes
+        ELSE A.Tamaño -- Bytes
+    END AS TamañoCalculado,
+    CASE 
+        WHEN A.Tamaño >= 1073741824 THEN 'Gigabytes'
+        WHEN A.Tamaño >= 1048576 THEN 'Megabytes'
+        WHEN A.Tamaño >= 1024 THEN 'Kilobytes'
+        ELSE 'Bytes'
+    END AS Unidad
+FROM Archivos AS A
+INNER JOIN TiposArchivos AS TA
+ON A.IDTipoArchivo = TA.IDTipoArchivo; 
+
+--11 Listar los nombres de archivo y extensión de los archivos que han sido compartidos. 
+SELECT DISTINCT
+    A.Nombre,
+    A.Extension
+FROM Archivos AS A
+INNER JOIN ArchivosCompartidos AS AC
+ON A.IDArchivo = AC.IDArchivo
+
+-- 12 Listar los nombres de archivo y extensión de los archivos que han sido compartidos a usuarios con apellido 'Clarck' o 'Jones'
+SELECT 
+    U.Apellido,
+    A.Nombre,
+    A.Extension
+FROM Archivos AS A
+INNER JOIN ArchivosCompartidos AS AC
+ON A.IDArchivo = AC.IDArchivo
+INNER JOIN Usuarios AS U
+ON AC.IDUsuario = U.IDUsuario
+WHERE U.Apellido IN ('Clarck', 'Jones')
+
+-- 13 Listar los nombres de archivo, extensión, apellidos y nombres de los usuarios a quienes se le hayan compartido archivos con permiso de 'Escritura'
+SELECT 
+    A.Nombre,
+    A.Extension,
+    U.Apellido,
+    U.Nombre
+FROM Archivos AS A
+INNER JOIN ArchivosCompartidos AS AC
+ON A.IDArchivo = AC.IDArchivo
+INNER JOIN Permisos AS P 
+ON AC.IDPermiso = P.IDPermiso
+INNER JOIN Usuarios AS U
+ON U.IDUsuario = AC.IDUsuario
+WHERE P.Nombre = 'Escritura'
+
+-- 14 Listar los nombres de archivos y extensión de los archivos que no han sido compartidos.
+SELECT 
+    A.Nombre,
+    A.Extension
+FROM Archivos AS A
+LEFT JOIN ArchivosCompartidos AS AC
+ON A.IDArchivo = AC.IDArchivo
+WHERE AC.FechaCompartido IS NULL 
+ORDER BY AC.IDArchivo ASC
+
+-- 15 Listar los apellidos y nombres de los usuarios dueños que tienen archivos eliminados.
+SELECT DISTINCT
+    U.Apellido,
+    U.Nombre
+FROM Usuarios AS U
+INNER JOIN Archivos AS A
+ON U.IDUsuario = A.IDUsuarioDueño
+WHERE A.Eliminado = 1
+ORDER BY Apellido
+
+-- 16  Listar los nombres de los tipos de suscripciones, sin repetir, que tienen archivos que pesan al menos 120 Megabytes.
+SELECT DISTINCT 
+    TU.TipoUsuario
+FROM TiposUsuario AS TU
+INNER JOIN Usuarios AS U
+ON TU.IDTipoUsuario = U.IDTipoUsuario
+INNER JOIN Archivos AS A
+ON U.IDUsuario = A.IDUsuarioDueño
+WHERE A.Tamaño >= 120 * 1024 * 1024
+
+-- 17 Listar los apellidos y nombres de los usuarios dueños, nombre del archivo,
+--extensión, fecha de creación, fecha de modificación y la cantidad de días
+--transcurridos desde la última modificación. Sólo incluir a los archivos que se
+--hayan modificado (fecha de modificación distinta a la fecha de creación).
+SELECT *, DATEDIFF(DAY, FechaUltimaModificacion, GETDATE()) AS DIAS_TRANSCURRIDOS
+FROM Archivos AS A
+INNER JOIN Usuarios AS U
+ON A.IDUsuarioDueño = U.IDUsuario
+WHERE A.FechaCreacion <> A.FechaUltimaModificacion
+    
+
+-- 18 Listar nombres de archivos, extensión, tamaño, apellido y nombre del usuario dueño del archivo, apellido y nombre del usuario que tiene el archivo compartido y el nombre de permiso otorgado.
+SELECT 
+    A.Nombre, 
+    A.Extension, 
+    A.Tamaño, 
+    CONCAT(Ud.Apellido, ' ', Ud.Nombre) AS Usuario_Dueño,
+    CONCAT(UC.Apellido, ' ', UC.Nombre) AS Usuarios_Compartidos,
+    P.Nombre
+FROM Archivos AS A
+INNER JOIN Usuarios AS Ud ON A.IDUsuarioDueño = Ud.IDUsuario
+INNER JOIN ArchivosCompartidos AS AC ON A.IDArchivo = AC.IDArchivo
+INNER JOIN Usuarios AS Uc ON AC.IDUsuario = Uc.IDUsuario
+INNER JOIN Permisos AS P ON AC.IDPermiso = P.IDPermiso
+
+-- 19 Listar nombres de archivos, extensión, tamaño, apellido y nombre del usuario dueño del archivo, apellido y nombre del usuario que tiene el archivo compartido y el nombre de permiso otorgado. 
+--Sólo listar aquellos registros cuyos tipos de usuarios coincidan tanto para el dueño como para el usuario al que le comparten el archivo.
+SELECT 
+    A.Nombre, 
+    A.Extension, 
+    A.Tamaño, 
+    CONCAT(Ud.Apellido, ' ', Ud.Nombre) AS Usuario_Dueño,
+    CONCAT(UC.Apellido, ' ', UC.Nombre) AS Usuarios_Compartidos,
+    P.Nombre
+FROM Archivos AS A
+INNER JOIN Usuarios AS Ud ON A.IDUsuarioDueño = Ud.IDUsuario
+INNER JOIN ArchivosCompartidos AS AC ON A.IDArchivo = AC.IDArchivo
+INNER JOIN Usuarios AS UC ON AC.IDUsuario = UC.IDUsuario
+INNER JOIN Permisos AS P ON AC.IDPermiso = P.IDPermiso
+WHERE Ud.IDTipoUsuario = UC.IDTipoUsuario 
+
+
+-- 20 Apellido y nombre de los usuarios que tengan compartido o sean dueños del archivo con nombre 'Documento Legal'
+SELECT 
+    U.Apellido,
+    U.Nombre
+FROM Usuarios AS U
+INNER JOIN Archivos AS A ON U.IDUsuario = A.IDUsuarioDueño
+WHERE A.Nombre = 'Documento Legal' 
+UNION
+SELECT 
+    U.Apellido, 
+    U.Nombre 
+FROM Archivos A
+INNER JOIN ArchivosCompartidos AS AC ON A.IDArchivo = AC.IDArchivo
+INNER JOIN Usuarios AS U ON U.IDUsuario = AC.IDUsuario
+WHERE A.Nombre = 'Documento Legal'
+
+
+2.3 Funciones de Resumen
+--1 La cantidad de archivos con extensión zip.
+SELECT 
+    COUNT(*) AS Contador
+FROM Archivos AS A 
+WHERE A.Extension =  'zip' 
+
+-- 2 La cantidad de archivos que fueron modificados y, por lo tanto, su fecha de última modificación no es la misma que la fecha de creación.
+SELECT 
+    COUNT(A.IDArchivo) AS 'Modificados'
+From Archivos AS A
+WHERE A.FechaUltimaModificacion <> A.FechaCreacion
+
+-- 3 La fecha de creación más antigua de los archivos con extensión pdf.
+SELECT
+    MIN(FechaCreacion) AS 'Fecha'
+FROM Archivos 
+WHERE Extension = 'pdf'
+--INNER JOIN TiposArchivos AS TA ON A.IDTipoArchivo = TA.IDTipoArchivo
+--WHERE TA.TipoArchivo LIKE '%pdf%'
+
+-- 4 La cantidad de extensiones distintas cuyos archivos tienen en su nombre o en su descripción la palabra 'Informe' o 'Documento'.
+SELECT 
+    COUNT(DISTINCT Extension) AS 'Extensiones'
+From Archivos 
+WHERE Descripcion LIKE '%Informe%' OR Descripcion LIKE '%Documento%'
+
+-- 5 El promedio de tamaño (expresado en Megabytes) de los archivos con extensión 'doc', 'docx', 'xls', 'xlsx'.
+SELECT 
+    AVG(CAST(Tamaño AS float) / 1048576)
+FROM Archivos 
+WHERE Extension IN ('doc', 'docx', 'xls', 'xlxs')
+
+-- 6 La cantidad de archivos que le fueron compartidos al usuario con apellido 'Clarck'
+SELECT 
+    count(*) as CantArchivosCompartidos 
+FROM ArchivosCompartidos AS ac
+INNER JOIN Usuarios AS u ON ac.IDUsuario = u.IDUsuario
+WHERE u.Apellido = 'Clarck'
+
+-- 7 La cantidad de tipos de usuario que tienen asociado usuarios que registren, como dueños, archivos con extensión pdf.
+SELECT 
+    COUNT(DISTINCT tu.TipoUsuario) AS CantTiposUsuarios 
+FROM Usuarios AS u
+INNER JOIN Archivos AS a ON u.IDUsuario = a.IDUsuarioDueño
+INNER JOIN TiposUsuario AS tu ON u.IDTipoUsuario = tu.IDTipoUsuario
+WHERE a.Extension = 'pdf'
+
+-- 8 El tamaño máximo expresado en Megabytes de los archivos que hayan sido creados en el año 2024.
+SELECT 
+    MAX(CAST(A.Tamaño AS FLOAT) / 1048576) AS 'Tamaño Max MB' 
+FROM Archivos AS A
+WHERE YEAR(FechaCreacion) = 2024
+
+-- 9 El nombre del tipo de usuario y la cantidad de usuarios distintos de dicho tipo que registran, como dueños, archivos con extensión pdf.
+SELECT
+    TU.TipoUsuario,
+    COUNT(DISTINCT A.IDUsuarioDueño) AS 'Cantidad Usuarios'
+FROM Archivos AS A
+INNER JOIN Usuarios AS U ON A.IDUsuarioDueño = U.IDUsuario
+INNER JOIN TiposUsuario AS TU ON U.IDTipoUsuario = TU.IDTipoUsuario
+WHERE A.Extension = 'pdf'
+GROUP BY TU.TipoUsuario
+
+-- 10 El nombre y apellido de los usuarios dueños y la suma total del tamaño de los archivos que tengan compartidos con otros usuarios. 
+--Mostrar ordenado de mayor sumatoria de tamaño a menor.
+SELECT 
+    U.Nombre,
+    U.Apellido,
+    SUM(A.Tamaño) AS Compartidos
+FROM Archivos AS A 
+INNER JOIN Usuarios AS U ON A.IDUsuarioDueño = U.IDUsuario
+INNER JOIN ArchivosCompartidos AS AC ON A.IDArchivo = AC.IDArchivo
+GROUP BY U.Nombre, U.Apellido
+ORDER BY Compartidos DESC 
+
+-- 11 El nombre del tipo de archivo y el promedio de tamaño de los archivos que corresponden a dicho tipo de archivo.
+SELECT 
+    TA.TipoArchivo,
+    AVG(A.Tamaño)
+FROM Archivos AS A 
+INNER JOIN TiposArchivos AS TA ON A.IDTipoArchivo = TA.IDTipoArchivo
+GROUP BY TA.TipoArchivo
+
+-- 12 Por cada extensión, indicar la extensión, la cantidad de archivos con esa extensión y el total acumulado en bytes. 
+--Ordenado por cantidad de archivos de forma ascendente.
+SELECT 
+    A.Extension,
+    COUNT(A.Extension) AS 'Total Archivos',
+    SUM(A.Tamaño) AS 'Bytes'
+FROM Archivos AS A 
+GROUP BY A.Extension
+ORDER BY [Total Archivos] ASC
+
+-- 13 Por cada usuario, indicar IDUSuario, Apellido, Nombre y la sumatoria total en bytes de los archivos que es dueño. 
+--Si algún usuario no registra archivos indicar 0 en la sumatoria total.
+SELECT 
+    U.IDUsuario,
+    U.Apellido,
+    U.NOMBRE,
+    ISNULL (SUM(A.Tamaño), 0) AS 'TotalBytes'
+FROM Usuarios AS U
+LEFT JOIN Archivos AS A ON U.IDUsuario = A.IDUsuarioDueño
+GROUP BY U.IDUSuario, U.Apellido, U.Nombre
+
+-- 14 Los tipos de archivos que fueron compartidos más de una vez con el permiso con nombre 'Lectura'
+SELECT 
+    TA.TipoArchivo
+FROM TiposArchivos AS TA
+INNER JOIN Archivos AS A ON A.IDTipoArchivo = TA.IDTipoArchivo
+INNER JOIN ArchivosCompartidos AS AC ON A.IDArchivo = AC.IDArchivo
+INNER JOIN Permisos AS P ON P.IDPermiso = AC.IDPermiso
+WHERE P.Nombre = 'Lectura'
+GROUP BY TA.TipoArchivo
+HAVING count(*) > 1
+
+-- 16 Por cada tipo de archivo indicar el tipo de archivo y el tamaño del archivo de dicho tipo que sea más pesado.
+SELECT 
+    TA.TipoArchivo,
+    MAX(A.Tamaño)
+FROM Archivos AS A
+INNER JOIN TiposArchivos AS TA ON A.IDTipoArchivo = TA.IDTipoArchivo
+GROUP BY TA.TipoArchivo
+
+-- 17 El nombre del tipo de archivo y el promedio de tamaño de los archivos que corresponden a dicho tipo de archivo. 
+--Solamente listar aquellos registros que superen los 50 Megabytes de promedio.
+SELECT
+    TA.TipoArchivo,
+    AVG(CAST(A.Tamaño AS float))
+FROM Archivos AS A
+INNER JOIN TiposArchivos AS TA ON A.IDTipoArchivo = TA.IDTipoArchivo
+GROUP BY TA.TipoArchivo
+HAVING AVG(CAST(A.Tamaño as float) / 1048576) > 50
+
+-- 18 Listar las extensiones que registren más de 2 archivos que no hayan sido compartidos.
+SELECT 
+    A.Extension,
+    COUNT(A.IDArchivo) AS 'Cant Extensiones'
+FROM Archivos AS A
+LEFT JOIN ArchivosCompartidos AS AC ON A.IDArchivo = AC.IDArchivo
+WHERE AC.IDArchivo IS NULL
+GROUP BY A.Extension
+HAVING COUNT(A.IDArchivo) > 2
+
+2.4 Subconsultas
+--                                       EJERCICIOS  de Subconsulta 
+
+USE BDArchivos
+
+-- 1 Los nombres y extensiones y tamaño en Megabytes de los archivos que pesen más que el promedio de archivos.
+SELECT 
+    Nombre,
+    Extension,
+    CAST(Tamaño / 1048576.0 AS DECIMAL(10, 2)) 
+FROM Archivos
+WHERE CAST(Tamaño / 1048576.0 AS DECIMAL(10, 2))  > 
+(
+SELECT 
+    (Select AVG(CAST(Tamaño / 1048576.0 AS DECIMAL(10, 2))) 
+FROM Archivos)
+)
+
+-- 2 Los usuarios indicando apellido y nombre que no sean dueños de ningún archivo con extensión 'zip'.
+SELECT 
+    U.Apellido,
+    U.Nombre
+FROM Usuarios AS U
+WHERE U.IDUsuario NOT IN 
+(
+SELECT DISTINCT
+    IDUsuarioDueño 
+FROM Archivos 
+WHERE Extension = 'zip'
+) 
+
+-- 3 Los usuarios indicando IDUsuario, apellido, nombre y tipo de usuario que no hayan creado ni modificado ningún archivo en el año actual.
+SELECT 
+    U.IDUsuario,
+    U.Apellido,
+    U.Nombre,
+    TU.TipoUsuario
+FROM Usuarios AS U
+INNER JOIN TiposUsuario AS TU ON U.IDTipoUsuario = TU.IDTipoUsuario
+WHERE U.IDUsuario NOT IN 
+(
+SELECT DISTINCT 
+    IDUsuarioDueño
+FROM Archivos
+WHERE YEAR(FechaCreacion) = YEAR(GETDATE())
+   OR YEAR (FechaUltimaModificacion) = YEAR(GETDATE())
+)
+
+
+-- 4 Los tipos de usuario que no registren .................... usuario con archivos eliminados.
+SELECT
+    TU.TipoUsuario
+FROM TiposUsuario AS TU
+WHERE TU.IDTipoUsuario NOT IN 
+(
+SELECT DISTINCT 
+    U.IDTipoUsuario
+FROM Usuarios U
+INNER JOIN Archivos A ON U.IDUsuario = A.IDUsuarioDueño
+WHERE A.Eliminado = 1 
+)
+
+-- 5 Los tipos de archivos que no se hayan compartido con el permiso de 'Lectura'
+SELECT DISTINCT 
+    TA.IDTipoArchivo,
+    TA.TipoArchivo
+FROM TiposArchivos AS TA
+INNER JOIN Archivos AS A ON TA.IDTipoArchivo = A.IDTipoArchivo 
+WHERE A.IDArchivo NOT IN 
+(
+SELECT DISTINCT 
+    P.IDPermiso
+FROM Permisos P
+INNER JOIN ArchivosCompartidos AS AC ON P.IDPermiso = AC.IDPermiso
+WHERE P.Nombre = 'Lectura'
+)
+
+-- 6 Los nombres y extensiones de los archivos que tengan un tamaño mayor al del archivo con extensión 'xls' más grande.
+SELECT 
+    Nombre,
+    Extension,
+    Tamaño
+FROM Archivos
+WHERE Tamaño > 
+(
+SELECT 
+    MAX(Tamaño) 
+FROM Archivos 
+WHERE Extension = 'xls'
+)
+
+-- 7 Los nombres y extensiones de los archivos que tengan un tamaño mayor al del archivo con extensión 'zip' más pequeño.
+SELECT 
+    Nombre,
+    Extension
+FROM Archivos
+WHERE Tamaño > 
+(
+SELECT 
+    MIN(Tamaño) 
+FROM Archivos 
+WHERE Extension = 'zip'
+)
+
+-- 8 Por cada tipo de archivo indicar el tipo y la cantidad de archivos eliminados y la cantidad de archivos no eliminados.
+SELECT 
+    TA.TipoArchivo, 
+    (  
+        SELECT COUNT(*) 
+        FROM Archivos AS A
+        WHERE TA.IDTipoArchivo = A.IDTipoArchivo 
+            AND Eliminado = 0
+    ) AS NoEliminados,
+    (  
+        SELECT COUNT(*) 
+        FROM Archivos AS A
+        WHERE TA.IDTipoArchivo = A.IDTipoArchivo 
+            AND Eliminado = 1
+    ) AS Eliminados
+FROM TiposArchivos AS TA
+
+
+-- 9 Por cada usuario indicar el IDUsuario, el apellido, el nombre, la cantidad de archivos pequeños (menos de 20MB) y la cantidad de archivos grandes (20MBs o más)
+SELECT 
+    U.IDUsuario,
+    U.Apellido,
+    U.Nombre,
+    (
+        SELECT COUNT(*)
+        FROM Archivos AS A
+        WHERE U.IDUsuario = A.IDUsuarioDueño
+            AND CAST(Tamaño / 1048576.0 AS DECIMAL(10, 2)) < 20
+    ) AS Archivos_Pequeños,
+    (
+        SELECT COUNT(*)
+        FROM Archivos AS A
+        WHERE U.IDUsuario = A.IDUsuarioDueño
+            AND CAST(Tamaño / 1048576.0 AS DECIMAL(10, 2)) >= 20
+    ) AS Archivos_Grandes
+FROM Usuarios AS U
+
+-- 10 Por cada usuario indicar el IDUsuario, el apellido, el nombre y la cantidad de archivos creados en el año 2022, la cantidad en el año 2023 y la cantidad creados en el 2024.
+SELECT 
+    U.IDUsuario,
+    U.Apellido,
+    U.Nombre,
+    (
+        SELECT COUNT(*)
+        FROM Archivos AS A
+        WHERE U.IDUsuario = A.IDUsuarioDueño
+            AND YEAR(FechaCreacion) = 2022
+    ) AS AÑO2022,
+    (
+        SELECT COUNT(*)
+        FROM Archivos AS A
+        WHERE U.IDUsuario = A.IDUsuarioDueño
+            AND YEAR(FechaCreacion) = 2023
+    ) AS AÑO2023,
+    (
+        SELECT COUNT(*)
+        FROM Archivos AS A
+        WHERE U.IDUsuario = A.IDUsuarioDueño
+            AND YEAR(FechaCreacion) = 2024
+    ) AS AÑO2024
+FROM Usuarios AS U
+
+
+-- 11 Los archivos que fueron compartidos con permiso de 'Comentario' pero no con permiso de 'Lectura'
+SELECT 
+    A.Nombre
+FROM Archivos AS A
+WHERE A.IDArchivo IN 
+(
+    SELECT 
+        AC.IDArchivo
+    FROM ArchivosCompartidos AS AC
+    INNER JOIN Permisos AS P ON AC.IDPermiso = P.IDPermiso
+    WHERE P.Nombre = 'Comentario'
+) 
+AND A.IDArchivo NOT IN 
+(
+    SELECT 
+        AC.IDArchivo
+    FROM ArchivosCompartidos AS AC 
+    INNER JOIN Permisos AS P ON AC.IDPermiso = P.IDPermiso
+    WHERE P.Nombre = 'Lectura'
+)
+
+-- 12 CLAUSULA FROM-------------Los tipos de archivos que registran más archivos eliminados que no eliminados.
+SELECT
+    AUX.IDTipoArchivo, AUX.TipoArchivo, AUX.Eliminados, AUX.NoEliminados
+FROM 
+(
+SELECT 
+    TA.IDTipoArchivo,
+    TA.TipoArchivo, 
+    (
+        SELECT COUNT(*)
+        FROM Archivos AS A
+        WHERE TA.IDTipoArchivo = A.IDTipoArchivo
+            AND Eliminado = 0
+    ) AS NoEliminados,
+    (
+         SELECT COUNT(*)
+        FROM Archivos AS A
+        WHERE TA.IDTipoArchivo = A.IDTipoArchivo
+            AND Eliminado = 1
+    ) AS Eliminados
+FROM TiposArchivos AS TA
+) AS AUX
+WHERE AUX.Eliminados > AUX.NoEliminados
+        
+
+-- 13 Los usuario que registren más archivos pequeños que archivos grandes (pero que al menos registren un archivo de cada uno)
+SELECT
+    AUX.Apellido, AUX.Nombre,  AUX.Archivos_Pequeños, AUX.Archivos_Grandes
+FROM 
+(
+SELECT 
+    U.Apellido,
+    U.Nombre,
+    (
+        SELECT COUNT(*)
+        FROM Archivos AS A
+        WHERE U.IDUsuario = A.IDUsuarioDueño
+            AND CAST(Tamaño / 1048576.0 AS DECIMAL(10, 2)) < 20
+    ) AS Archivos_Pequeños,
+    (
+        SELECT COUNT(*)
+        FROM Archivos AS A
+        WHERE U.IDUsuario = A.IDUsuarioDueño
+            AND CAST(Tamaño / 1048576.0 AS DECIMAL(10, 2)) >= 20
+    ) AS Archivos_Grandes
+FROM Usuarios AS U
+) AS AUX 
+WHERE AUX.Archivos_Pequeños > AUX.Archivos_Grandes
+    AND (AUX.Archivos_Pequeños >= 1 AND AUX.Archivos_Grandes >= 1)
+
+-- 14 Los usuarios------- que hayan creado (CONDICION IN)---------más archivos en el 2022 que en el 2023 y en el 2023 que en el 2024.
+-- Esta consulta selecciona los usuarios que cumplen con las condiciones definidas en la subconsulta,
+SELECT 
+    U.IDUsuario,
+    U.Apellido,
+    U.Nombre
+FROM Usuarios U
+WHERE U.IDUsuario IN 
+(
+SELECT 
+    A.IDUsuarioDueño
+FROM Archivos A
+GROUP BY A.IDUsuarioDueño
+HAVING COUNT(CASE WHEN YEAR(A.FechaCreacion) = 2022 THEN 1 END) > COUNT(CASE WHEN YEAR(A.FechaCreacion) = 2023 THEN 1 END)
+   AND COUNT(CASE WHEN YEAR(A.FechaCreacion) = 2023 THEN 1 END) > COUNT(CASE WHEN YEAR(A.FechaCreacion) = 2024 THEN 1 END)
+)
+
+
